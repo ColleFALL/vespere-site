@@ -106,9 +106,72 @@
     box-shadow: 0 6px 20px rgba(245, 197, 24, 0.25);
   }
 
+  .nav-cta-mobile-wrap { display: none; }
+
+  /* --- Mobile hamburger toggle --- */
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    z-index: 210;
+  }
+
+  .nav-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .nav-toggle.is-active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-toggle.is-active span:nth-child(2) { opacity: 0; }
+  .nav-toggle.is-active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
   @media (max-width: 768px) {
-    .nav-links { display: none; }
     .navbar { padding: 18px 24px; }
+
+    .nav-toggle { display: flex; }
+
+    .navbar > .nav-cta { display: none; }
+
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(14, 11, 8, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 96px 32px 40px;
+      gap: 26px;
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.35s ease, opacity 0.3s ease;
+      z-index: 190;
+    }
+
+    .nav-links.is-open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .nav-links a { font-size: 18px; }
+
+    .nav-cta-mobile-wrap { display: block; margin-top: 8px; }
+
+    .nav-cta-mobile { width: 100%; }
   }
 
   /* === HERO === */
@@ -474,14 +537,18 @@
   <!-- === NAVIGATION === -->
   <nav class="navbar" id="navbar">
     <div class="nav-logo">Vespere</div>
-    <ul class="nav-links">
+    <ul class="nav-links" id="nav-links">
       <li><a href="#rooms">Les pièces</a></li>
       <li><a href="#amenities">Équipements</a></li>
       <li><a href="#gallery">Galerie</a></li>
       <li><a href="#reviews">Avis</a></li>
       <li><a href="#host">L'hôte</a></li>
+      <li class="nav-cta-mobile-wrap"><button class="btn-primary nav-cta-mobile">Vérifier les disponibilités</button></li>
     </ul>
     <button class="nav-cta">Vérifier les disponibilités</button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
 
   <!-- === HERO (scroll-scrubbing) === -->
@@ -577,6 +644,30 @@
         navbar.classList.toggle('scrolled', window.scrollY > 40);
       });
 
+      // --- Mobile hamburger toggle ---
+      const navToggle = document.getElementById('nav-toggle');
+      const navLinks = document.getElementById('nav-links');
+
+      function closeMobileNav() {
+        navLinks.classList.remove('is-open');
+        navToggle.classList.remove('is-active');
+        navToggle.setAttribute('aria-expanded', 'false');
+      }
+
+      navToggle.addEventListener('click', () => {
+        const isOpen = navLinks.classList.toggle('is-open');
+        navToggle.classList.toggle('is-active', isOpen);
+        navToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+
+      navLinks.querySelectorAll('a, button').forEach(el => {
+        el.addEventListener('click', closeMobileNav);
+      });
+
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) closeMobileNav();
+      });
+
       // ============================================================
       // === ROOMS — DATA + CARD RENDERING ===
       // ============================================================
@@ -631,7 +722,11 @@
         { label: 'Scène 05 — la chambre', title: 'Le lin brut, <em>la brume au réveil</em>.' }
       ];
 
-      const MAX_FRAMES = 300;
+      // Moins de frames et résolution réduite sur mobile : l'extraction
+      // (seek + decode par frame) est bien plus coûteuse sur CPU mobile.
+      const IS_MOBILE_DEVICE = window.innerWidth < 768;
+      const MAX_FRAMES = IS_MOBILE_DEVICE ? 60 : 180;
+      const MAX_EXTRACT_DIM = IS_MOBILE_DEVICE ? 640 : 1024;
       let frames = [];
       let currentFrameIndex = 0;
       let currentSceneIndex = 0;
@@ -703,9 +798,10 @@
         const duration = video.duration;
         const totalFrames = Math.min(MAX_FRAMES, Math.max(2, Math.floor(duration * 30)));
 
+        const scale = Math.min(1, MAX_EXTRACT_DIM / Math.max(video.videoWidth, video.videoHeight));
         const offCanvas = document.createElement('canvas');
-        offCanvas.width = video.videoWidth;
-        offCanvas.height = video.videoHeight;
+        offCanvas.width = Math.round(video.videoWidth * scale);
+        offCanvas.height = Math.round(video.videoHeight * scale);
         const offCtx = offCanvas.getContext('2d');
 
         for (let i = 0; i < totalFrames; i++) {
