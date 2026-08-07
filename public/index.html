@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vespere — Une cabane au bord du lac</title>
 
+<!-- Priorité maximale : la vidéo hero commence à être téléchargée dès le
+     parsing du <head>, en parallèle des fonts, avant tout le reste. -->
+<link rel="preload" as="video" href="videos/hero-flythrough.mp4" type="video/mp4">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -63,11 +67,16 @@
   }
 
   .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--font-serif);
     font-size: 22px;
     letter-spacing: 4px;
     color: var(--text-primary);
   }
+
+  .nav-logo-icon { flex-shrink: 0; }
 
   .nav-links {
     display: flex;
@@ -196,48 +205,6 @@
 
   #hero-video { display: none; }
 
-  /* --- Loading screen --- */
-  .hero-loading {
-    position: absolute;
-    inset: 0;
-    z-index: 60;
-    background: var(--bg-primary);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    transition: opacity 0.4s ease;
-  }
-
-  .hero-loading.is-hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .hero-loading-text {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: 22px;
-    letter-spacing: 1px;
-    color: var(--text-primary);
-  }
-
-  .hero-loading-bar {
-    width: 260px;
-    height: 2px;
-    background: rgba(245, 197, 24, 0.15);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .hero-loading-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    transition: width 0.2s linear;
-  }
-
   /* --- Overlay --- */
   .hero-overlay {
     position: absolute;
@@ -262,24 +229,16 @@
     background: linear-gradient(to top, #0E0B08, transparent);
   }
 
-  .hero-title {
-    position: absolute;
-    top: 56px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: var(--font-serif);
-    font-size: 42px;
-    letter-spacing: 4px;
-    color: rgba(240, 228, 211, 0.5);
-    white-space: nowrap;
-  }
-
   .hero-scene {
     position: absolute;
     bottom: 72px;
     left: 48px;
     max-width: 480px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
   }
+
+  .hero-scene.is-visible { opacity: 1; }
 
   .scene-label {
     display: block;
@@ -311,7 +270,11 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
   }
+
+  .hero-progress.is-visible { opacity: 1; }
 
   .prog-tick {
     width: 3px;
@@ -326,7 +289,6 @@
   }
 
   @media (max-width: 768px) {
-    .hero-title { font-size: 28px; letter-spacing: 2px; top: 40px; }
     .hero-scene { left: 24px; right: 24px; bottom: 56px; max-width: none; }
     .scene-title { font-size: 20px; }
     .hero-progress { right: 24px; bottom: 64px; }
@@ -368,6 +330,11 @@
     border-radius: var(--radius-card);
     overflow: hidden;
     opacity: 0;
+    transition: transform 0.3s ease;
+  }
+
+  .room-card:hover {
+    transform: scale(1.02);
   }
 
   .card-image {
@@ -424,7 +391,6 @@
   /* === BOOKING BAND === */
   .booking-band {
     background: var(--bg-tertiary);
-    border-top: 0.5px solid rgba(245, 197, 24, 0.15);
     padding: 64px 48px;
     display: flex;
     align-items: center;
@@ -536,7 +502,12 @@
 
   <!-- === NAVIGATION === -->
   <nav class="navbar" id="navbar">
-    <div class="nav-logo">Vespere</div>
+    <div class="nav-logo">
+      <svg class="nav-logo-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      Vespere
+    </div>
     <ul class="nav-links" id="nav-links">
       <li><a href="#rooms">Les pièces</a></li>
       <li><a href="#amenities">Équipements</a></li>
@@ -556,20 +527,11 @@
     <canvas id="hero-canvas" class="hero-canvas"></canvas>
     <video id="hero-video" src="videos/hero-flythrough.mp4" preload="auto" muted playsinline></video>
 
-    <div class="hero-loading" id="hero-loading">
-      <p class="hero-loading-text">Préparation du rituel...</p>
-      <div class="hero-loading-bar">
-        <div class="hero-loading-fill" id="hero-loading-fill"></div>
-      </div>
-    </div>
-
     <div class="hero-overlay">
       <div class="hero-gradient hero-gradient-top"></div>
       <div class="hero-gradient hero-gradient-bottom"></div>
 
-      <h1 class="hero-title">Vespere</h1>
-
-      <div class="hero-scene">
+      <div class="hero-scene" id="hero-scene">
         <span class="scene-label" id="scene-label">Scène 01 — l'extérieur</span>
         <h2 class="scene-title" id="scene-title">La tombée du soir <em>sur le lac</em>.</h2>
       </div>
@@ -622,7 +584,7 @@
         <h4>Contact</h4>
         <ul>
           <li><a href="mailto:sejour@vespere-cabane.com">sejour@vespere-cabane.com</a></li>
-          <li><a href="tel:+15145550142">+1 514 555 0142</a></li>
+          <li><a href="tel:+15145550142">+221 776543234 </a></li>
         </ul>
       </div>
     </div>
@@ -669,47 +631,17 @@
       });
 
       // ============================================================
-      // === ROOMS — DATA + CARD RENDERING ===
-      // ============================================================
-      const ROOMS = [
-        { name: 'Extérieur', desc: 'La tombée du soir sur le lac.', img: 'images/room-01.jpg' },
-        { name: 'Le salon', desc: 'Le feu crépite, le lac s\'efface.', img: 'images/room-02.jpg' },
-        { name: 'La cheminée', desc: 'Une chaleur qui enveloppe.', img: 'images/room-03.jpg' },
-        { name: 'La cuisine', desc: 'La vapeur monte face à la forêt.', img: 'images/room-04.jpg' },
-        { name: 'La chambre', desc: 'Le lin brut, la brume au réveil.', img: 'images/room-05.jpg' }
-      ];
-
-      const FALLBACK_ICON = `
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M3 16l5-6 4 5 3-4 6 7" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="17" cy="7" r="2"/>
-        </svg>`;
-
-      const grid = document.getElementById('rooms-grid');
-      grid.innerHTML = ROOMS.map(room => `
-        <div class="room-card">
-          <div class="card-image">
-            <div class="card-fallback-icon">${FALLBACK_ICON}</div>
-            <img src="${room.img}" alt="${room.name}"
-                 onerror="this.style.display='none'">
-          </div>
-          <div class="card-body">
-            <h3>${room.name}</h3>
-            <p>${room.desc}</p>
-          </div>
-        </div>
-      `).join('');
-
-      // ============================================================
       // === HERO SCROLL-SCRUBBING ===
       // ============================================================
+      // Lancée en tout premier, avant le rendu des cartes ci-dessous,
+      // pour laisser la priorité réseau/CPU à la vidéo hero.
       gsap.registerPlugin(ScrollTrigger);
 
       const canvas = document.getElementById('hero-canvas');
       const ctx = canvas.getContext('2d');
       const video = document.getElementById('hero-video');
-      const loadingScreen = document.getElementById('hero-loading');
-      const loadingFill = document.getElementById('hero-loading-fill');
+      const heroSceneEl = document.getElementById('hero-scene');
+      const heroProgressEl = document.getElementById('hero-progress');
       const sceneLabelEl = document.getElementById('scene-label');
       const sceneTitleEl = document.getElementById('scene-title');
       const progressTicks = document.querySelectorAll('.prog-tick');
@@ -722,14 +654,16 @@
         { label: 'Scène 05 — la chambre', title: 'Le lin brut, <em>la brume au réveil</em>.' }
       ];
 
-      // Moins de frames et résolution réduite sur mobile : l'extraction
-      // (seek + decode par frame) est bien plus coûteuse sur CPU mobile.
-      const IS_MOBILE_DEVICE = window.innerWidth < 768;
-      const MAX_FRAMES = IS_MOBILE_DEVICE ? 60 : 180;
-      const MAX_EXTRACT_DIM = IS_MOBILE_DEVICE ? 640 : 1024;
+      // Extraction volontairement légère : 60 frames max, en 640px de large
+      // max, pour que le scroll-scrubbing soit prêt le plus vite possible
+      // même si l'utilisateur scrolle très rapidement dès son arrivée.
+      const MAX_FRAMES = 60;
+      const MAX_EXTRACT_DIM = 640;
       let frames = [];
       let currentFrameIndex = 0;
+      let framesReady = false;
       let currentSceneIndex = 0;
+      let heroScrollStarted = false;
 
       function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -793,30 +727,53 @@
           .catch(() => false);
       }
 
-      async function extractFrames() {
-        await waitForMetadata();
-        const duration = video.duration;
-        const totalFrames = Math.min(MAX_FRAMES, Math.max(2, Math.floor(duration * 30)));
+      // --- Extraction rapide par lecture accélérée (requestVideoFrameCallback) ---
+      // Bien plus rapide qu'un seek séquentiel par frame : la vidéo est lue
+      // en avance rapide pendant qu'on capture les frames au vol, au lieu
+      // d'attendre un aller-retour "seeked" par frame.
+      function extractFramesViaPlayback(totalFrames, offCanvas, offCtx, duration) {
+        return new Promise((resolve, reject) => {
+          const targets = [];
+          for (let i = 1; i < totalFrames; i++) targets.push((i / (totalFrames - 1)) * duration);
+          let nextIndex = 0;
+          const originalRate = video.playbackRate;
+          const pending = [];
 
-        const scale = Math.min(1, MAX_EXTRACT_DIM / Math.max(video.videoWidth, video.videoHeight));
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = Math.round(video.videoWidth * scale);
-        offCanvas.height = Math.round(video.videoHeight * scale);
-        const offCtx = offCanvas.getContext('2d');
+          function capture(i) {
+            offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
+            pending.push(createImageBitmap(offCanvas).then(bitmap => { frames[i + 1] = bitmap; }));
+          }
 
-        for (let i = 0; i < totalFrames; i++) {
-          const time = (i / (totalFrames - 1)) * duration;
-          await seekTo(time);
-          offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
-          const bitmap = await createImageBitmap(offCanvas);
-          frames.push(bitmap);
-          loadingFill.style.width = (((i + 1) / totalFrames) * 100) + '%';
-        }
+          function finish() {
+            video.pause();
+            video.playbackRate = originalRate;
+            video.removeEventListener('ended', finish);
+            Promise.all(pending).then(resolve, reject);
+          }
+
+          function onFrame(now, metadata) {
+            while (nextIndex < targets.length && metadata.mediaTime >= targets[nextIndex]) {
+              capture(nextIndex);
+              nextIndex++;
+            }
+            if (nextIndex >= targets.length) { finish(); return; }
+            video.requestVideoFrameCallback(onFrame);
+          }
+
+          video.addEventListener('ended', finish, { once: true });
+          video.playbackRate = 8;
+          video.requestVideoFrameCallback(onFrame);
+          video.play().catch(reject);
+        });
       }
 
-      function hideLoadingScreen() {
-        loadingScreen.classList.add('is-hidden');
-        setTimeout(() => { loadingScreen.style.display = 'none'; }, 400);
+      // Repli si requestVideoFrameCallback n'est pas supporté (ex. Firefox) :
+      // seeks séquentiels classiques, un peu plus lents mais fiables partout.
+      async function extractFramesViaSeek(totalFrames, duration, captureFrame) {
+        for (let i = 1; i < totalFrames; i++) {
+          const time = (i / (totalFrames - 1)) * duration;
+          frames[i] = await captureFrame(time);
+        }
       }
 
       // --- Scene text + progress ticks, synced to scroll progress (0 -> 1) ---
@@ -843,23 +800,37 @@
         });
       }
 
-      function setupScrollTrigger(totalFrames) {
+      // Le hero reste pin/scrub dès le chargement de la page. Tant que
+      // framesReady est false, onUpdate ne redessine rien : le canvas garde
+      // simplement l'image statique (frame 0) déjà affichée à l'écran.
+      // Dès que framesReady passe à true, le prochain onUpdate calcule la
+      // frame correspondant à la position de scroll actuelle : la bascule
+      // se fait donc sans saut, exactement là où l'utilisateur se trouve.
+      // Le texte de scène et la barre de progression restent invisibles
+      // tant que le scroll n'a pas commencé (progress === 0).
+      function setupScrollTrigger() {
         const isMobile = window.innerWidth < 768;
         const scrollDistance = isMobile ? '+=200%' : '+=400%';
-        const frameProxy = { frame: 0 };
 
-        gsap.to(frameProxy, {
-          frame: Math.max(0, totalFrames - 1),
-          ease: 'none',
-          onUpdate: () => drawFrame(frameProxy.frame),
-          scrollTrigger: {
-            id: 'heroScrub',
-            trigger: '#hero',
-            start: 'top top',
-            end: scrollDistance,
-            scrub: true,
-            pin: true,
-            onUpdate: self => updateScene(self.progress)
+        ScrollTrigger.create({
+          id: 'heroScrub',
+          trigger: '#hero',
+          start: 'top top',
+          end: scrollDistance,
+          scrub: true,
+          pin: true,
+          onUpdate: self => {
+            const started = self.progress > 0;
+            if (started !== heroScrollStarted) {
+              heroScrollStarted = started;
+              heroSceneEl.classList.toggle('is-visible', started);
+              heroProgressEl.classList.toggle('is-visible', started);
+            }
+            updateScene(self.progress);
+
+            if (!framesReady || frames.length < 2) return;
+            const idx = Math.round(self.progress * (frames.length - 1));
+            drawFrame(idx);
           }
         });
       }
@@ -867,50 +838,97 @@
       async function initHero() {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
+        setupScrollTrigger();
 
         const videoUrl = 'videos/hero-flythrough.mp4';
         const exists = await checkVideoExists(videoUrl).catch(() => false);
-
-        if (!exists) {
-          // Fallback propre : pas de vidéo -> pas de canvas, le dégradé CSS du hero suffit.
-          hideLoadingScreen();
-          setupScrollTrigger(1);
-          return;
-        }
+        if (!exists) return; // Fallback propre : dégradé CSS du hero, pas de canvas.
 
         try {
-          await extractFrames();
+          await waitForMetadata();
+          const duration = video.duration;
+          const totalFrames = Math.min(MAX_FRAMES, Math.max(2, Math.floor(duration * 30)));
+
+          const scale = Math.min(1, MAX_EXTRACT_DIM / Math.max(video.videoWidth, video.videoHeight));
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = Math.round(video.videoWidth * scale);
+          offCanvas.height = Math.round(video.videoHeight * scale);
+          const offCtx = offCanvas.getContext('2d');
+
+          async function captureFrame(time) {
+            await seekTo(time);
+            offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
+            return createImageBitmap(offCanvas);
+          }
+
+          // Frame 0 d'abord : affichée immédiatement comme image statique,
+          // sans aucun indicateur de chargement.
+          frames[0] = await captureFrame(0);
           canvas.classList.add('is-ready');
           drawFrame(0);
-          hideLoadingScreen();
-          setupScrollTrigger(frames.length);
+
+          // Le reste s'extrait silencieusement en arrière-plan, sans bloquer
+          // le scroll ni afficher quoi que ce soit. On tente d'abord la
+          // méthode rapide (lecture accélérée), avec repli sur les seeks
+          // classiques si l'API n'est pas supportée ou échoue.
+          if ('requestVideoFrameCallback' in video) {
+            try {
+              await extractFramesViaPlayback(totalFrames, offCanvas, offCtx, duration);
+            } catch (err) {
+              await extractFramesViaSeek(totalFrames, duration, captureFrame);
+            }
+          } else {
+            await extractFramesViaSeek(totalFrames, duration, captureFrame);
+          }
+          framesReady = true;
         } catch (err) {
-          hideLoadingScreen();
-          setupScrollTrigger(1);
+          // Silencieux : le hero garde l'image statique ou le dégradé CSS.
         }
       }
 
       initHero();
 
       // ============================================================
+      // === ROOMS — DATA + CARD RENDERING ===
+      // ============================================================
+      const ROOMS = [
+        { name: 'Extérieur', desc: 'La tombée du soir sur le lac.', img: 'images/room-01.jpg' },
+        { name: 'Le salon', desc: 'Le feu crépite, le lac s\'efface.', img: 'images/room-02.jpg' },
+        { name: 'La cheminée', desc: 'Une chaleur qui enveloppe.', img: 'images/room-03.jpg' },
+        { name: 'La cuisine', desc: 'La vapeur monte face à la forêt.', img: 'images/room-04.jpg' },
+        { name: 'La chambre', desc: 'Le lin brut, la brume au réveil.', img: 'images/room-05.jpg' }
+      ];
+
+      const FALLBACK_ICON = `
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M3 16l5-6 4 5 3-4 6 7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="17" cy="7" r="2"/>
+        </svg>`;
+
+      const grid = document.getElementById('rooms-grid');
+      grid.innerHTML = ROOMS.map(room => `
+        <div class="room-card">
+          <div class="card-image">
+            <div class="card-fallback-icon">${FALLBACK_ICON}</div>
+            <img src="${room.img}" alt="${room.name}"
+                 onerror="this.style.display='none'">
+          </div>
+          <div class="card-body">
+            <h3>${room.name}</h3>
+            <p>${room.desc}</p>
+          </div>
+        </div>
+      `).join('');
+
+      // ============================================================
       // === ROOMS SCROLL ANIMATIONS ===
       // ============================================================
-      gsap.utils.toArray('.room-card').forEach((card, i) => {
-        gsap.fromTo(card,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            delay: (i % 3) * 0.1,
-            ease: 'power2.out',
-            scrollTrigger: {
-              trigger: card,
-              start: 'top 88%',
-              toggleActions: 'play none none reverse'
-            }
-          }
-        );
+      ScrollTrigger.batch('.room-card', {
+        start: 'top 80%',
+        onEnter: batch => gsap.fromTo(batch,
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.12 }
+        )
       });
 
     });
