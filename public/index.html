@@ -803,11 +803,12 @@
       // Le hero reste pin/scrub dès le chargement de la page. Tant que
       // framesReady est false, onUpdate ne redessine rien : le canvas garde
       // simplement l'image statique (frame 0) déjà affichée à l'écran.
-      // Dès que framesReady passe à true, le prochain onUpdate calcule la
-      // frame correspondant à la position de scroll actuelle : la bascule
-      // se fait donc sans saut, exactement là où l'utilisateur se trouve.
-      // Le texte de scène et la barre de progression restent invisibles
-      // tant que le scroll n'a pas commencé (progress === 0).
+      // Le texte de scène et la barre de progression sont gelés sur le même
+      // état tant que framesReady est false, pour ne jamais avancer plus
+      // vite que la vidéo (sinon le texte "dépasse" une vidéo encore figée).
+      // Dès que framesReady passe à true, le prochain onUpdate calcule à la
+      // fois la frame et le segment de texte correspondant à la position de
+      // scroll actuelle : texte et vidéo basculent ensemble, sans saut.
       function setupScrollTrigger() {
         const isMobile = window.innerWidth < 768;
         const scrollDistance = isMobile ? '+=200%' : '+=400%';
@@ -820,15 +821,15 @@
           scrub: true,
           pin: true,
           onUpdate: self => {
-            const started = self.progress > 0;
+            const started = framesReady && self.progress > 0;
             if (started !== heroScrollStarted) {
               heroScrollStarted = started;
               heroSceneEl.classList.toggle('is-visible', started);
               heroProgressEl.classList.toggle('is-visible', started);
             }
-            updateScene(self.progress);
 
             if (!framesReady || frames.length < 2) return;
+            updateScene(self.progress);
             const idx = Math.round(self.progress * (frames.length - 1));
             drawFrame(idx);
           }
@@ -881,6 +882,9 @@
             await extractFramesViaSeek(totalFrames, duration, captureFrame);
           }
           framesReady = true;
+          // Resynchronise immédiatement texte + vidéo sur la position de
+          // scroll actuelle, sans attendre que l'utilisateur rescrolle.
+          ScrollTrigger.update();
         } catch (err) {
           // Silencieux : le hero garde l'image statique ou le dégradé CSS.
         }
